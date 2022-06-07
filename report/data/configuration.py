@@ -4,7 +4,8 @@ import pathlib
 from dataclasses import dataclass
 from typing import Dict, List
 
-from shapely.geometry import LineString, Polygon
+import numpy as np
+import pygeos
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,21 @@ class ConfigurationVelocity:
     """
 
     frame_step: int
+    movement_direction: np.ndarray
     ignore_backward_movement: bool
+
+
+@dataclass(frozen=True)
+class ConfigurationMethodCCM:
+    """Configuration for method_CCM
+    Attributes:
+        line_width(float): width of the measurement line (will become a polygon!)
+        cut_off_radius (float): max radius of voronoi cells (0 can lead to large polygons only bound
+            the geometry)
+    """
+
+    line_width: float = 0.0
+    cut_off_radius: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -41,7 +56,9 @@ class Configuration:
     trajectory_files: List[pathlib.Path]
     geometry_file: pathlib.Path
 
-    measurement_areas: Dict[int, Polygon]
-    measurement_lines: Dict[int, LineString]
+    measurement_areas: Dict[int, pygeos.Geometry]
+    measurement_lines: Dict[int, pygeos.Geometry]
 
     velocity_configuration: ConfigurationVelocity
+
+    config_method_ccm: Dict[int, ConfigurationMethodCCM]
