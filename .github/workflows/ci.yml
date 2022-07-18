@@ -69,9 +69,8 @@ jobs:
           name: demos_usage
           path: |
             usage.ipynb
+            jpsreport.ipynb
             demos/
-            
-
     outputs:
       wheel: ${{ steps.build-wheel.outputs.wheel }}
 
@@ -109,3 +108,7 @@ jobs:
       - name: Run usage notebook
         run: |
           jupyter nbconvert --to notebook --execute usage.ipynb
+
+      - name: Run usage jpsreport notebook
+        run: |
+          jupyter nbconvert --to notebook --execute jpsreport.ipynb
