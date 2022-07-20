@@ -6,9 +6,9 @@ Note:
 
 import pathlib
 import xml.etree.ElementTree as ET
-from typing import List
 
-from shapely.geometry import LineString, Point
+import numpy as np
+import pygeos
 
 from analyzer.data.geometry import Geometry
 
@@ -24,28 +24,52 @@ def parse_geometry(geometry_file: pathlib.Path) -> Geometry:
 
     """
     root = ET.parse(geometry_file).getroot()
-    walls = parse_geometry_walls(root)
+    walls = _parse_geometry_walls(root)
+    obstacles = _parse_obstacles(root)
 
-    return Geometry(walls)
+    return Geometry(pygeos.polygonize(walls), obstacles)
 
 
-def parse_geometry_walls(xml_root: ET.Element) -> List[LineString]:
-    """Parses the walls from the given xml node.
+def _parse_geometry_walls(xml_root: ET.Element) -> np.ndarray:
+    """Parses all walls from the given root of the geometry file.
 
     Args:
-        xml_root (ET.Element): root of the xml file
+        xml_root (ET.Element): root of the geometry file
 
     Returns:
-        list of all walls which are in the geometry
+        numpy array of all walls which are in the geometry
     """
     walls = []
-    for subroom in xml_root.iter("subroom"):
-        for polygon in subroom.iter("polygon"):
-            wall = []
-            for vertex in polygon.iter("vertex"):
-                x = float(vertex.attrib["px"])
-                y = float(vertex.attrib["py"])
-                point = Point(x, y)
-                wall.append(point)
-            walls.append(LineString(wall))
-    return walls
+    for polygon_node in xml_root.findall("rooms/room/subroom/polygon"):
+        walls.append(_parse_vertex(polygon_node))
+    return np.array(walls)
+
+
+def _parse_obstacles(xml_root: ET.Element) -> np.ndarray:
+    """Parses all obstacles from the given root of the geometry file.
+
+    Args:
+        xml_root (ET.Element): root of the geometry file
+
+    Returns:
+        numpy array of all obstacles (as polygons) which are in the geometry
+    """
+    obstacles = []
+    for obstacles_node in xml_root.findall("rooms/room/subroom/obstacle/polygon"):
+        obstacles.append(_parse_vertex(obstacles_node))
+    return pygeos.get_parts(pygeos.normalize(pygeos.polygonize(np.array(obstacles))))
+
+
+def _parse_vertex(polygon_node: ET.Element) -> pygeos.Geometry:
+    """Parses the given vertex as line string
+
+    Args:
+        polygon_node (ET.Element): xml node containing the vertex information
+
+    Returns:
+        linestring of the parsed vertex
+    """
+    border = []
+    for vertex in polygon_node.iter("vertex"):
+        border.append([float(vertex.attrib["px"]), float(vertex.attrib["py"])])
+    return pygeos.linestrings(np.array(border))
