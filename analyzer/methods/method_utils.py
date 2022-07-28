@@ -103,22 +103,22 @@ def _compute_individual_movement(
     """
     df_movement = traj_data.copy(deep=True)
 
+    df_movement["start"] = (
+        df_movement.groupby("ID")["points"].shift(frame_step).fillna(df_movement["points"])
+    )
+    df_movement["start_frame"] = (
+        df_movement.groupby("ID")["frame"].shift(frame_step).fillna(df_movement["frame"])
+    )
+
     if bidirectional:
-        df_movement["start"] = (
-            df_movement.groupby("ID")["points"].shift(frame_step).fillna(df_movement["points"])
+        df_movement["end"] = (
+            df_movement.groupby("ID")["points"].shift(-frame_step).fillna(df_movement["points"])
         )
-        df_movement["start_frame"] = (
-            df_movement.groupby("ID")["frame"].shift(frame_step).fillna(df_movement["frame"])
+        df_movement["end_frame"] = (
+            df_movement.groupby("ID")["frame"].shift(-frame_step).fillna(df_movement["frame"])
         )
     else:
-        df_movement["start"] = df_movement["points"]
-        df_movement["start_frame"] = df_movement["frame"]
-
-    df_movement["end"] = (
-        df_movement.groupby("ID")["points"].shift(-frame_step).fillna(df_movement["points"])
-    )
-    df_movement["end_frame"] = (
-        df_movement.groupby("ID")["frame"].shift(-frame_step).fillna(df_movement["frame"])
-    )
+        df_movement["end"] = df_movement["points"]
+        df_movement["end_frame"] = df_movement["frame"]
 
     return df_movement[["ID", "frame", "start", "end", "start_frame", "end_frame"]]
